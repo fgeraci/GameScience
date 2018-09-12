@@ -11,10 +11,14 @@ public class GridGenerator : MonoBehaviour {
         EXPERT
     }
 
-    public DIFFICULTY_LEVEL DifficultyLevel;
+    public DIFFICULTY_LEVEL DifficultyLevel = DIFFICULTY_LEVEL.EASY;
 
-    private int X = 4, Y = 8;
-    private float startDelay = 0.01f;
+    // Game Difficulty settings
+    private int     X = 4, Y = 8;
+    private float   startDelay = 0.01f;
+    private float   routePreviewSpeed = 5f;
+    private int     pathMultiplier = 1;
+
     private Transform Plane;
     private Vector3[] vertices;
     private Material nodeMaterial;
