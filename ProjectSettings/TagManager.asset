@@ -3,7 +3,11 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - UI.MenuPanel
+  - Game.KillBall
+  - UI.QuitButton
+  - UI.GamePanel
   layers:
   - Default
   - TransparentFX
