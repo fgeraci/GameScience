@@ -7,7 +7,7 @@ public class DisplayManager : MonoBehaviour {
     public Text displayText;
     public float displayTime;
     public float fadeTime;
-
+    
     private IEnumerator fadeAlpha;
 
     private static DisplayManager displayManager;

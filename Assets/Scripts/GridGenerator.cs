@@ -19,7 +19,7 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public UnityEngine.UI.Dropdown DifficultyOptions;
-
+    public int level;
     public DIFFICULTY_LEVEL DifficultyLevel = DIFFICULTY_LEVEL.EASY;
 
     // Game Difficulty settings
@@ -30,16 +30,22 @@ public class GridGenerator : MonoBehaviour {
     private Vector3     origMenuPosition, origBallPosition;
     private GameObject  gamePanel;
     private GameObject  quitButton;
-
+    private GameObject  KillBall;
+    private List<GameObject> goalPath;
+    private GameObject  currentNode;
     private Transform Plane;
     private GameObject[] vertices;
     private Material nodeMaterial;
+    private float drawPathDelay = 2f;
+    private bool playing = false;
 
     private float tileOffsetX, tileOffsetY;
 
     public void Awake() {
+        goalPath = new List<GameObject>();
+        KillBall = GameObject.FindGameObjectWithTag("Game.KillBall");
         origMenuPosition = GameObject.FindGameObjectWithTag("UI.MenuPanel").GetComponent<RectTransform>().position;
-        origBallPosition = GameObject.FindGameObjectWithTag("Game.KillBall").transform.position;
+        origBallPosition = KillBall.transform.position;
         gamePanel = GameObject.FindGameObjectWithTag("UI.GamePanel");
         quitButton = GameObject.FindGameObjectWithTag("UI.QuitButton");
         gamePanel.SetActive(false);
@@ -50,6 +56,7 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public void StartGame() {
+        level = 1;
         StartCoroutine(MoveMenu(true));
     }
 
@@ -89,9 +96,11 @@ public class GridGenerator : MonoBehaviour {
                 break;
             case DIFFICULTY_LEVEL.HARD:
                 X = 6; Y = 12;
+                drawPathDelay *= 0.8f;
                 break;
             case DIFFICULTY_LEVEL.EXPERT:
                 X = 12; Y = 12;
+                drawPathDelay *= 0.5f;
                 break;
         }
         startDelay /= X;
@@ -117,11 +126,14 @@ public class GridGenerator : MonoBehaviour {
                 StartCoroutine(AnimateScale(node,new Vector3(3, 3, 3)));
                 vertices[index] = node;
                 index++;
-                if ((index - 1) == vertices.Length / 2)
+                if ((index - 1) == vertices.Length / 2) {
                     StartCoroutine(MoveKillBall(vertices[vertices.Length / 2].transform.position));
+                    currentNode = vertices[vertices.Length / 2];
+                }
                 yield return wait;
             }
         }
+        StartLevel();
     }
 
     private IEnumerator MoveKillBall(Vector3 targetPosition) {
@@ -142,6 +154,59 @@ public class GridGenerator : MonoBehaviour {
                 break;
             }
             yield return null;
+        }
+    }
+    
+    private IEnumerator DrawPath() {
+        WaitForSeconds wait = new WaitForSeconds(drawPathDelay);
+        for(int i = 0; i <  goalPath.Count; ++i) {
+            if(i < goalPath.Count - 1) {
+                
+                GameObject myLine = new GameObject();
+                myLine.transform.position = goalPath[i].transform.position;
+                myLine.AddComponent<LineRenderer>();
+                LineRenderer lr = myLine.GetComponent<LineRenderer>();
+                Material mat = Resources.Load("Materials/Line_mat") as Material;
+                lr.material = mat;
+                lr.startColor = Color.green;
+                lr.endColor = Color.red;
+                lr.startWidth = lr.endWidth = 1f;
+                lr.SetPosition(0, goalPath[i].transform.position);
+                lr.SetPosition(1, goalPath[i+1].transform.position);
+                myLine.transform.parent = this.transform;
+                GameObject.Destroy(myLine, drawPathDelay);
+            }
+            yield return wait;
+        }
+        playing = true;
+    }
+
+    private void StartLevel() {
+        GenerateRoad();
+        StartCoroutine(DrawPath());
+    }
+
+    private void GenerateRoad() {
+        goalPath = new List<GameObject>();
+        goalPath.Add(currentNode);
+        int path = Mathf.Min(3, level) + 1;
+        float extra = 1;
+        switch(DifficultyLevel) {
+            case DIFFICULTY_LEVEL.HARD:
+                extra = 1.5f;
+                break;
+            case DIFFICULTY_LEVEL.MEDIUM:
+                extra = 1.75f;
+                break;
+        }
+        path = (int) (path * extra);
+        
+        for(int i = 1; i < path + 1; i++) {
+            GameObject nextNode = vertices[Random.Range(0,vertices.Length - 1)];
+            while(nextNode == currentNode) {
+                nextNode = vertices[Random.Range(0, vertices.Length - 1)];
+            }
+            goalPath.Add(nextNode);
         }
     }
 }
