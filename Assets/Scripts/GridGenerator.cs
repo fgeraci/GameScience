@@ -65,17 +65,14 @@ public class GridGenerator : MonoBehaviour {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 if (Physics.Raycast(ray, out hit, 200.0f)) {
-                    Debug.Log("Hit something...");
                     if(hit.collider.transform == goalPath[currentNodeIndex + 1].transform) {
-                        StartCoroutine(MoveKillBall(goalPath[currentNodeIndex + 1].transform.position));
-                        if (goalPath[currentNodeIndex + 1] == goalPath[goalPath.Count - 1]) {
-                            Debug.Log("Level cleared!");
-                            playing = false;
+                        currentNodeIndex++;
+                        StartCoroutine(MoveKillBall(goalPath[currentNodeIndex].transform.position));
+                        currentNode = goalPath[currentNodeIndex];
+                        Debug.Log("Current Index: " + currentNodeIndex + " vs " + goalPath.Count);
+                        if (currentNodeIndex == (goalPath.Count - 1)) {
                             StartCoroutine(Congratulate());
-                        } else {
-                            currentNodeIndex++;
                         }
-                        currentNode = goalPath[currentNodeIndex + 1];
                     }
                 }
             }
@@ -225,7 +222,7 @@ public class GridGenerator : MonoBehaviour {
     private IEnumerator Congratulate() {
         playing = false;
         levelClearedPanel.SetActive(true);
-        WaitForSeconds seconds = new WaitForSeconds(2);
+        WaitForSeconds seconds = new WaitForSeconds(2.5f);
         yield return seconds;
         levelClearedPanel.SetActive(false);
         StartLevel();
@@ -242,9 +239,9 @@ public class GridGenerator : MonoBehaviour {
 
     private void GenerateRoad() {
         if (goalPath != null) goalPath.Clear();
-        goalPath = new List<GameObject>();
+        else goalPath = new List<GameObject>();
         goalPath.Add(currentNode);
-        int path = Mathf.Min(3, level) + 1;
+        int path = level + 1;
         float extra = 1;
         switch(DifficultyLevel) {
             case DIFFICULTY_LEVEL.HARD:
