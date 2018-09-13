@@ -19,27 +19,29 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public UnityEngine.UI.Dropdown DifficultyOptions;
-    public int level;
+    public int level = 0;
     public DIFFICULTY_LEVEL DifficultyLevel = DIFFICULTY_LEVEL.EASY;
 
     // Game Difficulty settings
-    private int         X = 4, Y = 8;
-    private float       startDelay = 0.01f;
-    private float       routePreviewSpeed = 5f;
-    private int         pathMultiplier = 1;
-    private Vector3     origMenuPosition, origBallPosition;
-    private GameObject  gamePanel;
-    private GameObject  quitButton;
-    private GameObject  KillBall;
-    private List<GameObject> goalPath;
-    private GameObject  currentNode;
-    private Transform Plane;
-    private GameObject[] vertices;
-    private Material nodeMaterial;
-    private float drawPathDelay = 2f;
-    private bool playing = false;
-
-    private float tileOffsetX, tileOffsetY;
+    private int                 X = 4, Y = 8;
+    private float               startDelay = 0.01f;
+    private float               routePreviewSpeed = 5f;
+    private int                 pathMultiplier = 1;
+    private Vector3             origMenuPosition, origBallPosition;
+    private GameObject          gamePanel;
+    private GameObject          quitButton;
+    private GameObject          KillBall;
+    private List<GameObject>    goalPath;
+    private GameObject          currentNode;
+    private int                 currentNodeIndex = 0;
+    private Transform           Plane;
+    private GameObject[]        vertices;
+    private Material            nodeMaterial;
+    private float               drawPathDelay = 2f;
+    private bool                playing = false;
+    private GameObject          playText, levelText, nodesText;
+    private float               tileOffsetX, tileOffsetY;
+    private GameObject          levelClearedPanel;
 
     public void Awake() {
         goalPath = new List<GameObject>();
@@ -48,7 +50,36 @@ public class GridGenerator : MonoBehaviour {
         origBallPosition = KillBall.transform.position;
         gamePanel = GameObject.FindGameObjectWithTag("UI.GamePanel");
         quitButton = GameObject.FindGameObjectWithTag("UI.QuitButton");
+        playText = GameObject.FindGameObjectWithTag("UI.PlayText");
+        levelText = GameObject.FindGameObjectWithTag("UI.LevelText");
+        nodesText = GameObject.FindGameObjectWithTag("UI.NodesText");
+        levelClearedPanel = GameObject.FindGameObjectWithTag("UI.LevelClearedPanel");
+        levelClearedPanel.SetActive(false);
+        StartCoroutine(NotifyPlay());
         gamePanel.SetActive(false);
+    }
+
+    public void FixedUpdate() {
+        if (playing) {
+            if (Input.GetMouseButton(0)) {
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out hit, 200.0f)) {
+                    Debug.Log("Hit something...");
+                    if(hit.collider.transform == goalPath[currentNodeIndex + 1].transform) {
+                        StartCoroutine(MoveKillBall(goalPath[currentNodeIndex + 1].transform.position));
+                        if (goalPath[currentNodeIndex + 1] == goalPath[goalPath.Count - 1]) {
+                            Debug.Log("Level cleared!");
+                            playing = false;
+                            StartCoroutine(Congratulate());
+                        } else {
+                            currentNodeIndex++;
+                        }
+                        currentNode = goalPath[currentNodeIndex + 1];
+                    }
+                }
+            }
+        }
     }
 
     public void SetDifficulty() {
@@ -56,11 +87,22 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public void StartGame() {
-        level = 1;
         StartCoroutine(MoveMenu(true));
     }
 
+    private void SetLabelText(GameObject label, string text) {
+        label.GetComponent<UnityEngine.UI.Text>().text = text;
+    }
+
+    private IEnumerator NotifyPlay() {
+        while(true) {
+            playText.SetActive(playing);
+            yield return null;
+        }
+    }
+
     public void ExitGame() {
+        playing = false;
         gamePanel.SetActive(false);
         foreach(GameObject go in vertices) {
             GameObject.DestroyImmediate(go);
@@ -158,10 +200,10 @@ public class GridGenerator : MonoBehaviour {
     }
     
     private IEnumerator DrawPath() {
+        playing = true;
         WaitForSeconds wait = new WaitForSeconds(drawPathDelay);
-        for(int i = 0; i <  goalPath.Count; ++i) {
+        for (int i = 0; i <  goalPath.Count; ++i) {
             if(i < goalPath.Count - 1) {
-                
                 GameObject myLine = new GameObject();
                 myLine.transform.position = goalPath[i].transform.position;
                 myLine.AddComponent<LineRenderer>();
@@ -178,15 +220,28 @@ public class GridGenerator : MonoBehaviour {
             }
             yield return wait;
         }
-        playing = true;
+    }
+
+    private IEnumerator Congratulate() {
+        playing = false;
+        levelClearedPanel.SetActive(true);
+        WaitForSeconds seconds = new WaitForSeconds(2);
+        yield return seconds;
+        levelClearedPanel.SetActive(false);
+        StartLevel();
     }
 
     private void StartLevel() {
+        currentNodeIndex = 0;
+        level++;
         GenerateRoad();
+        SetLabelText(levelText, "Level: " + level);
+        SetLabelText(nodesText, "Edges: " + (goalPath.Count - 1));
         StartCoroutine(DrawPath());
     }
 
     private void GenerateRoad() {
+        if (goalPath != null) goalPath.Clear();
         goalPath = new List<GameObject>();
         goalPath.Add(currentNode);
         int path = Mathf.Min(3, level) + 1;

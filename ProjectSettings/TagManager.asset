@@ -8,6 +8,10 @@ TagManager:
   - Game.KillBall
   - UI.QuitButton
   - UI.GamePanel
+  - UI.PlayText
+  - UI.LevelText
+  - UI.NodesText
+  - UI.LevelClearedPanel
   layers:
   - Default
   - TransparentFX
