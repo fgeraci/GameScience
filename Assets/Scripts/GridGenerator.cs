@@ -69,7 +69,6 @@ public class GridGenerator : MonoBehaviour {
                         currentNodeIndex++;
                         StartCoroutine(MoveKillBall(goalPath[currentNodeIndex].transform.position));
                         currentNode = goalPath[currentNodeIndex];
-                        Debug.Log("Current Index: " + currentNodeIndex + " vs " + goalPath.Count);
                         if (currentNodeIndex == (goalPath.Count - 1)) {
                             StartCoroutine(Congratulate());
                         }
@@ -99,6 +98,8 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public void ExitGame() {
+        level = 0;
+        currentNodeIndex = 0;
         playing = false;
         gamePanel.SetActive(false);
         foreach(GameObject go in vertices) {
@@ -188,12 +189,13 @@ public class GridGenerator : MonoBehaviour {
     private IEnumerator AnimateScale(GameObject node,Vector3 target) {
         while (node.transform.localScale != target) {
             node.transform.localScale = Vector3.Lerp(node.transform.localScale, target, Time.deltaTime * Random.Range(5f,10f));
-            if (Vector3.Distance(node.transform.localScale, target) <= 0.2f) {
+            if (Vector3.Distance(node.transform.localScale, target) <= 0.5f) {
                 node.transform.localScale = target;
                 break;
             }
             yield return null;
         }
+        node.transform.localScale = target;
     }
     
     private IEnumerator DrawPath() {
