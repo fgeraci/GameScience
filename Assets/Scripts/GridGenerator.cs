@@ -42,12 +42,20 @@ public class GridGenerator : MonoBehaviour {
     private GameObject          playText, levelText, nodesText;
     private float               tileOffsetX, tileOffsetY;
     private GameObject          levelClearedPanel;
+    private AudioSource         audioSource;
+    private AudioClip           clickSound, badClickSound, exitSound, levelClearedSound;
+
 
     public void Awake() {
         goalPath = new List<GameObject>();
         KillBall = GameObject.FindGameObjectWithTag("Game.KillBall");
         origMenuPosition = GameObject.FindGameObjectWithTag("UI.MenuPanel").GetComponent<RectTransform>().position;
         origBallPosition = KillBall.transform.position;
+        audioSource = GetComponent<AudioSource>();
+        clickSound = Resources.Load("Sounds/Bubble_Pop") as AudioClip;
+        exitSound = Resources.Load("Sounds/Exit_Game") as AudioClip;
+        badClickSound = Resources.Load("Sounds/Bad_Pop") as AudioClip;
+        levelClearedSound = Resources.Load("Sounds/Level_Cleared") as AudioClip;
         gamePanel = GameObject.FindGameObjectWithTag("UI.GamePanel");
         quitButton = GameObject.FindGameObjectWithTag("UI.QuitButton");
         playText = GameObject.FindGameObjectWithTag("UI.PlayText");
@@ -61,20 +69,30 @@ public class GridGenerator : MonoBehaviour {
 
     public void FixedUpdate() {
         if (playing) {
-            if (Input.GetMouseButton(0)) {
+            if (Input.GetMouseButtonDown(0)) {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 if (Physics.Raycast(ray, out hit, 200.0f)) {
                     if(hit.collider.transform == goalPath[currentNodeIndex + 1].transform) {
+                        PlayClip(clickSound);
                         currentNodeIndex++;
                         StartCoroutine(MoveKillBall(goalPath[currentNodeIndex].transform.position));
                         currentNode = goalPath[currentNodeIndex];
                         if (currentNodeIndex == (goalPath.Count - 1)) {
                             StartCoroutine(Congratulate());
                         }
+                    } else {
+                        PlayClip(badClickSound);
                     }
                 }
             }
+        }
+    }
+
+    private void PlayClip(AudioClip clip, bool interrupt = false) {
+        if (!audioSource.isPlaying || interrupt) {
+            audioSource.clip = clip;
+            audioSource.Play();
         }
     }
 
@@ -98,6 +116,7 @@ public class GridGenerator : MonoBehaviour {
     }
 
     public void ExitGame() {
+        PlayClip(exitSound);
         level = 0;
         currentNodeIndex = 0;
         playing = false;
@@ -122,7 +141,7 @@ public class GridGenerator : MonoBehaviour {
         }
         panel.position = targetPosition;
         gamePanel.SetActive(away);
-        if(away)
+        if (away)
             LoadGame();
     }
 
@@ -199,7 +218,6 @@ public class GridGenerator : MonoBehaviour {
     }
     
     private IEnumerator DrawPath() {
-        playing = true;
         WaitForSeconds wait = new WaitForSeconds(drawPathDelay);
         for (int i = 0; i <  goalPath.Count; ++i) {
             if(i < goalPath.Count - 1) {
@@ -216,12 +234,14 @@ public class GridGenerator : MonoBehaviour {
                 lr.SetPosition(1, goalPath[i+1].transform.position);
                 myLine.transform.parent = this.transform;
                 GameObject.Destroy(myLine, drawPathDelay);
+                if(i  == goalPath.Count / 2) playing = true;
             }
             yield return wait;
         }
     }
 
     private IEnumerator Congratulate() {
+        PlayClip(levelClearedSound, true);
         playing = false;
         levelClearedPanel.SetActive(true);
         WaitForSeconds seconds = new WaitForSeconds(2.5f);
